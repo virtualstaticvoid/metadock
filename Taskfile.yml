@@ -1,0 +1,51 @@
+# https://taskfile.dev
+---
+version: '3'
+
+tasks:
+  default:
+    silent: true
+    cmds:
+      - task --list
+
+  build:
+    desc: "Build container images."
+    env:
+      COMPOSE_FILE: "compose.metadock.yml:compose.build.yml:compose.test.yml"
+      GIT_SHA:
+        sh: echo "$(git rev-parse --short HEAD)$(git diff-index --quiet HEAD -- || echo '-dirty')"
+      VERSION:
+        sh: echo "$(head -n 1 VERSION)-${GIT_SHA}"
+    cmds:
+      - docker compose build
+
+  test:
+    desc: "Run tests."
+    vars:
+      AWS_PROFILE: '{{.AWS_PROFILE | default "default"}}'
+    env:
+      COMPOSE_FILE: "compose.metadock.yml:compose.test.yml"
+    cmds:
+      - echo "Running tests using '{{.AWS_PROFILE}}' AWS profile..."
+      - docker compose up --force-recreate --detach
+      - docker compose logs metadock
+      - docker compose exec -it test /test.sh
+
+  example:
+    desc: "Run example."
+    vars:
+      AWS_PROFILE: '{{.AWS_PROFILE | default "default"}}'
+    env:
+      COMPOSE_FILE: "compose.example.yml"
+    cmds:
+      - echo "Running example using '{{.AWS_PROFILE}}' AWS profile..."
+      - docker compose up --force-recreate --detach
+      - docker compose logs metadock
+      - docker compose exec -it example aws s3 ls
+
+  clean:
+    desc: "Stop services and clean up."
+    env:
+      COMPOSE_FILE: "compose.metadock.yml:compose.test.yml:compose.example.yml"
+    cmds:
+      - docker compose down --volumes
