@@ -38,7 +38,7 @@ ENTRYPOINT ["/sbin/tini", "--", "/opt/metadock/bin/metadock"]
 CMD ["default"]
 
 # ------------------------------------------------------------
-FROM ubuntu:24.04 as test
+FROM ubuntu:24.04 AS test
 
 ARG DEBIAN_FRONTEND=noninteractive
 
