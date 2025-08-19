@@ -1,0 +1,50 @@
+#
+# NOTE: Add Action Secrets for the following variables:
+#
+#  - AWS_ACCESS_KEY_ID
+#  - AWS_SECRET_ACCESS_KEY
+#  - AWS_REGION
+#
+
+name: build-test
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  workflow:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Install Task
+        uses: arduino/setup-task@v2
+        with:
+          version: 3.x
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Build
+        run: task build
+
+      - name: Test
+        run: task test
+
+      - name: Test Example
+        run: task example
+
+      - name: Cleanup
+        run: task clean
