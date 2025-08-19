@@ -36,3 +36,26 @@ HEALTHCHECK --interval=5s \
 
 ENTRYPOINT ["/sbin/tini", "--", "/opt/metadock/bin/metadock"]
 CMD ["default"]
+
+# ------------------------------------------------------------
+FROM ubuntu:24.04 as test
+
+ARG DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update -qq \
+ && apt-get install -qy --no-install-recommends \
+      ca-certificates \
+      curl \
+      unzip \
+ && apt-get clean \
+ && rm -rf /var/lib/apt/lists/*
+
+RUN curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-$(uname -m).zip" -o awscli-exe-linux.zip \
+ && tmpdir=$(mktemp -d) \
+ && unzip awscli-exe-linux.zip -d "${tmpdir}" \
+ && "${tmpdir}/aws/install" \
+ && rm -rf awscli-exe-linux.zip "${tmpdir}"
+
+COPY --chmod=755 test.sh /test.sh
+
+CMD ["sleep", "infinity"]
