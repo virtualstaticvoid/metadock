@@ -1,0 +1,32 @@
+---
+include:
+  - compose.metadock.yml
+
+services:
+
+  example:
+
+    # https://hub.docker.com/r/amazon/aws-cli/
+    image: "amazon/aws-cli:latest"
+
+    # 1. include the metadock network
+    networks:
+      - default
+      - metadock
+
+    # 2. optionally, depend on healthy metadock service, to ensure service available
+    depends_on:
+      metadock:
+        condition: service_healthy
+
+    # overridden for example purposes, since test run via `docker exec` command
+    entrypoint:
+      - sleep
+    command:
+      - infinity
+    init: true
+
+  # etc.
+
+networks:
+  default: {}
