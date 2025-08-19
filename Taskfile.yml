@@ -27,7 +27,7 @@ tasks:
       COMPOSE_FILE: "compose.metadock.yml:compose.test.yml"
     cmds:
       - echo "Running tests using '{{.AWS_PROFILE}}' AWS profile..."
-      - docker compose up --force-recreate --detach
+      - docker compose up --force-recreate --detach || docker compose logs && exit 1
       - docker compose logs metadock
       - docker compose exec -it test /test.sh
 
@@ -39,7 +39,7 @@ tasks:
       COMPOSE_FILE: "compose.example.yml"
     cmds:
       - echo "Running example using '{{.AWS_PROFILE}}' AWS profile..."
-      - docker compose up --force-recreate --detach
+      - docker compose up --force-recreate --detach || docker compose logs && exit 1
       - docker compose logs metadock
       - docker compose exec -it example aws s3 ls
 
