@@ -1,0 +1,12 @@
+---
+services:
+  metadock:
+    build:
+      context: .
+      target: app
+      args:
+        VERSION: "${VERSION}"
+      labels:
+        version: "${VERSION}"
+        repository: "https://github.com/virtualstaticvoid/metadock"
+        copyright: "MIT License. Copyright (c) 2025 Chris Stefano"
