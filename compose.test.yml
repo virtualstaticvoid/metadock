@@ -1,0 +1,15 @@
+---
+services:
+  test:
+    image: "ghcr.io/virtualstaticvoid/metadock-test:latest"
+    init: true
+    build:
+      context: .
+      target: test
+    networks:
+      - metadock
+    environment:
+      AWS_EC2_METADATA_SERVICE_ENDPOINT: "http://metadock/"
+    depends_on:
+      metadock:
+        condition: service_healthy

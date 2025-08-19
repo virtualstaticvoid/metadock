@@ -1,0 +1,22 @@
+#
+# From https://github.com/virtualstaticvoid/metadock
+# MIT License. Copyright (c) 2025 Chris Stefano
+#
+---
+services:
+  metadock:
+    image: "ghcr.io/virtualstaticvoid/metadock:latest"
+    command: ${AWS_PROFILE:-default}
+    volumes:
+      - "${HOME}/.aws:/root/.aws:ro"
+    networks:
+      metadock:
+        ipv4_address: 169.254.169.254
+
+networks:
+  metadock:
+    ipam:
+      driver: default
+      config:
+        - subnet: 169.254.169.0/24
+          gateway: 169.254.169.1
