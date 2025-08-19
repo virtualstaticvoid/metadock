@@ -76,12 +76,6 @@ func (lrw *loggingResponseWriter) WriteHeader(code int) {
 
 func loggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
-		log.Printf("%s %s\n",
-			r.Method,
-			r.URL.Path,
-		)
-
 		start := time.Now()
 		lrw := &loggingResponseWriter{ResponseWriter: w, statusCode: http.StatusOK}
 
