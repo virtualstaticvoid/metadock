@@ -23,13 +23,14 @@ tasks:
     desc: "Run tests."
     vars:
       AWS_PROFILE: '{{.AWS_PROFILE | default "default"}}'
+      HIDE_OUTPUT: '{{.CLI_ARGS | default ""}}'
     env:
-      COMPOSE_FILE: "compose.metadock.yml:compose.test.yml"
+      COMPOSE_FILE: "compose.test.yml"
     cmds:
       - echo "Running tests using '{{.AWS_PROFILE}}' AWS profile..."
-      - docker compose up --force-recreate --detach
+      - docker compose up --force-recreate --detach --wait || { docker compose logs; exit 1; }
       - docker compose logs metadock
-      - docker compose exec -it test /test.sh
+      - docker compose exec -it test /test.sh {{if .HIDE_OUTPUT}}> /dev/null{{end}}
 
   example:
     desc: "Run example."
@@ -39,9 +40,9 @@ tasks:
       COMPOSE_FILE: "compose.example.yml"
     cmds:
       - echo "Running example using '{{.AWS_PROFILE}}' AWS profile..."
-      - docker compose up --force-recreate --detach
+      - docker compose up --force-recreate --detach --wait || { docker compose logs; exit 1; }
       - docker compose logs metadock
-      - docker compose exec -it example aws s3 ls
+      - docker compose exec -it example aws sts get-caller-identity --no-cli-pager
 
   clean:
     desc: "Stop services and clean up."

@@ -1,3 +1,8 @@
+#
+# MetaDock
+# https://github.com/virtualstaticvoid/metadock
+# MIT License. Copyright (c) 2025 Chris Stefano
+#
 ---
 include:
   - compose.metadock.yml

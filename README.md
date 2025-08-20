@@ -5,14 +5,15 @@
 
 ## Overview
 
-`MetaDock` provides a lightweight Go implementation of the [AWS Instance Metadata Service (IMDSv2)][imds].
+`MetaDock` provides a lightweight Go implementation of a subset of the [AWS Instance Metadata Service (IMDSv2)][imds] 
+for the purpose of providing session credentials only.
 
 It is designed to run inside a Docker container and can be included in a `docker-compose` setup to
 provide AWS credentials to other services, effectively emulating an EC2 environment locally.
 
 Instead of retrieving credentials from AWS, the emulator loads them from the host, via the mounted
-`${HOME}/.aws` directory, using the `aws configure export-credentials` command. It then exposing
-them through the same API paths that would normally be available inside an EC2 instance:
+`${HOME}/.aws` directory, and then exposes them through the same API paths that would normally be 
+available inside an EC2 instance:
 
 * `/latest/api/token`
 * `/latest/meta-data/iam/security-credentials`
@@ -21,88 +22,120 @@ them through the same API paths that would normally be available inside an EC2 i
 `MetaDock` responds with the same metadata format as a real EC2 instance, enabling AWS SDKs and CLI
 commands inside containers to authenticate transparently.
 
-It relies on the developer obtaining AWS credentials on the host machine *before* running the
-`metadock` service, and attaching the services which require the service to the emulators docker
-network.
+It relies on the developer obtaining AWS credentials on the host machine *before* running the `metadock` 
+service. If long-lived (static) credentials are found, the service will generate session credentials, 
+with a default expiry of 12 hours.
 
 ## Usage
 
 ### Prerequisites
 
-* Host machine with:
-
-  - Linux
-  - [Task][task]
-  - Docker and `docker-compose`
-  - AWS CLI v2 installed and configured (`aws configure`, `aws sso login`, or equivalent)
-
-* An existing AWS profile with valid credentials.
+* AWS CLI v2 installed and configured (`aws configure`, `aws sso login`, or equivalent)
+* AWS configuration profile with valid credentials.
+* Docker and `docker-compose`
+* [Task][task] for running development tasks
 
 ### Quickstart
 
-1. Ensure you are logged into AWS:
+#### Ensure you are logged into AWS and have valid credentials
 
-    ```bash
-    aws configure
-    ```
+```bash
+aws configure
+```
 
-    Or
+Or
 
-    ```bash
-    aws sso login [--profile profile-name]
-    ````
+```bash
+aws sso login [--profile profile-name]
+````
 
-2. Include `compose.metadock.yml` in your `docker-compose.yml`.
+#### Include the `metadock` service in your Docker Compose configuration
 
-    - Use `include` directive to include the supplied [`compose.metadock.yml`](compose.metadock.yml) file.
-    - Add the `metadock` network to the services which need AWS credentials.
+The `MetaDock` service can be used in one of the following ways. 
+
+1. Using the provided [`compose.metadock.yml`](compose.metadock.yml) file.
+
+   - Use an [`include` directive][include] to include the [`compose.metadock.yml`](compose.metadock.yml) file.
+   - Add the `metadock` network to the services which need IMDS.
 
     See [`compose.example.yml`](compose.example.yml) for an example configuration.
 
-3. Your services can now query the emulator.
+2. Adding the `metadock` service and configure the `AWS_EC2_METADATA_SERVICE_ENDPOINT` environment variable. 
 
-    Optionally, from within the service (using `docker exec ...`):
+    Edit your compose file, add the `metadock` service and configure services which need IMDS.    
 
-    * Use `curl` to check if the `MetaDock` service is accessible
+    ```yaml
+    services:
+   
+      metadock:
+        image:  "ghcr.io/virtualstaticvoid/metadock:latest"
+        command: "${AWS_PROFLE:-default}"
+      volumes:
+        - "${HOME}/.aws:/root/.aws:ro"
 
-      ```bash
-      curl http://metadock/
+      your_service:
+        image: "..."
+        env:
+          AWS_EC2_METADATA_SERVICE_ENDPOINT: http://metadock/
 
-      # => MetaDock
-      ```
+    ```
 
-    * Or, check by running `aws` CLI commands
+#### Your services can now query the emulator
 
-      ```bash
-      aws s3 ls
-      ```
+Optionally, from within the respective services (using the `docker exec` command).
+
+* If `curl` is installed in the container, check if the `MetaDock` service is issuing credentials.
+
+    ```bash
+    TOKEN=$(curl -X PUT "http://metadock/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")
+    curl -H "X-aws-ec2-metadata-token: $TOKEN" http://metadock/latest/meta-data/iam/security-credentials/metadock
+    # => {"AccessKeyId":"...", ...}  
+    ```
+  
+    See [Use the Instance Metadata Service to access instance metadata][using-imds] documentation for details.
+
+* If the [`aws` CLI tool][aws-cli] is installed in the container, check by running the `sts get-caller-identity` CLI command.
+
+    ```bash
+    aws sts get-caller-identity --no-cli-pager
+    # => {"UserId": "...", ...}
+    ```
 
 ## Building and Testing
 
 This project uses [Task][task] to manage common development workflows.
 
-* Build the service
+### Build the service
 
-  ```bash
-  task build
-  ```
+```bash
+task build
+```
 
-* Run tests
+#### Run tests
 
-  ```bash
-  task test
-  ```
+```bash
+task test
+```
 
-* Cleanup artifacts
+#### Cleanup artifacts
 
-  ```bash
-  task clean
-  ```
+```bash
+task clean
+```
 
-Alternatively, you can build manually:
+Alternatively, you can run it directly on the host.
 
 ```bash
 go build -o metadock .
+PORT=8080 ./metadock <profile-name>
+```
+
+And connect, via `localhost` with the configured `PORT`.
+
+```bash
+TOKEN=$(curl -X PUT "http://localhost:8080/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")
+curl -H "X-aws-ec2-metadata-token: $TOKEN" http://localhost:8080/latest/meta-data/iam/security-credentials/metadock
+# => {"AccessKeyId":"...", ...}  
 ```
 
 ## License
@@ -111,5 +144,8 @@ MIT License. Copyright (c) 2025 Chris Stefano. See [LICENSE](LICENSE) for detail
 
 <!-- links -->
 
+[aws-cli]: https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html
 [imds]: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/configuring-instance-metadata-service.html
+[include]: https://docs.docker.com/reference/compose-file/include/
 [task]: https://taskfile.dev/
+[using-imds]: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/configuring-instance-metadata-service.html

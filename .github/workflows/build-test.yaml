@@ -1,0 +1,63 @@
+#
+# NOTE: Add Action Secrets for the following variables:
+#
+#  - AWS_ACCESS_KEY_ID
+#  - AWS_SECRET_ACCESS_KEY
+#  - AWS_REGION
+#
+
+name: build-test
+
+on:
+  pull_request:
+    branches: [ main ]
+
+env:
+  HOME: ${{ github.workspace }}
+  AWS_PROFILE: "default"
+
+jobs:
+  workflow:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Install Task
+        uses: arduino/setup-task@v2
+        with:
+          version: 3.x
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      # https://github.com/aws-actions/configure-aws-credentials/issues/112
+      # - name: Configure AWS credentials
+      #   uses: aws-actions/configure-aws-credentials@v4
+      #   with:
+      #     aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      #     aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      #     aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Configure AWS credentials (HACK)
+        run: |
+          aws configure set profile.${AWS_PROFILE}.aws_access_key_id "${{ secrets.AWS_ACCESS_KEY_ID }}"
+          aws configure set profile.${AWS_PROFILE}.aws_secret_access_key "${{ secrets.AWS_SECRET_ACCESS_KEY }}"
+          aws configure set profile.${AWS_PROFILE}.region "${{ secrets.AWS_REGION }}"
+
+      - name: Build
+        run: task build
+
+      - name: Test
+        run: task test -- true
+
+      # example can't run on GitHub Actions due to compose network configuration
+      # since access to the internet isn't possible from within the container network
+      # - name: Test Example
+      #   run: task example
+
+      - name: Cleanup
+        run: task clean

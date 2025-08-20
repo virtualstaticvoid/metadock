@@ -29,9 +29,6 @@ COPY README.md LICENSE /opt/metadock/
 ENV PORT=80
 
 HEALTHCHECK --interval=5s \
-            --timeout=10s \
-            --start-period=1s \
-            --retries=5 \
   CMD curl -sSfL http://127.0.0.1:${PORT}/health/ > /dev/null
 
 ENTRYPOINT ["/sbin/tini", "--", "/opt/metadock/bin/metadock"]
@@ -52,7 +49,7 @@ RUN apt-get update -qq \
 
 RUN curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-$(uname -m).zip" -o awscli-exe-linux.zip \
  && tmpdir=$(mktemp -d) \
- && unzip awscli-exe-linux.zip -d "${tmpdir}" \
+ && unzip -q awscli-exe-linux.zip -d "${tmpdir}" \
  && "${tmpdir}/aws/install" \
  && rm -rf awscli-exe-linux.zip "${tmpdir}"
 
