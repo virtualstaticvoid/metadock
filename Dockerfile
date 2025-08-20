@@ -52,7 +52,7 @@ RUN apt-get update -qq \
 
 RUN curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-$(uname -m).zip" -o awscli-exe-linux.zip \
  && tmpdir=$(mktemp -d) \
- && unzip awscli-exe-linux.zip -d "${tmpdir}" \
+ && unzip -q awscli-exe-linux.zip -d "${tmpdir}" \
  && "${tmpdir}/aws/install" \
  && rm -rf awscli-exe-linux.zip "${tmpdir}"
 
