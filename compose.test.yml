@@ -1,13 +1,17 @@
 ---
 services:
+  metadock:
+    image: "ghcr.io/virtualstaticvoid/metadock:latest"
+    command: "${AWS_PROFILE:-default}"
+    volumes:
+      - "${HOME}/.aws:/root/.aws"
+
   test:
     image: "ghcr.io/virtualstaticvoid/metadock-test:latest"
     init: true
     build:
       context: .
       target: test
-    networks:
-      - metadock
     environment:
       AWS_EC2_METADATA_SERVICE_ENDPOINT: "http://metadock/"
     depends_on:
