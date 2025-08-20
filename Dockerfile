@@ -29,9 +29,6 @@ COPY README.md LICENSE /opt/metadock/
 ENV PORT=80
 
 HEALTHCHECK --interval=5s \
-            --timeout=10s \
-            --start-period=1s \
-            --retries=5 \
   CMD curl -sSfL http://127.0.0.1:${PORT}/health/ > /dev/null
 
 ENTRYPOINT ["/sbin/tini", "--", "/opt/metadock/bin/metadock"]
